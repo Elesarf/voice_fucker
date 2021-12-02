@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"regexp"
-  "strconv"
+	"strconv"
+	"time"
 
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -42,14 +44,14 @@ func main() {
 	for update := range updates {
 		// if message from user
 		if update.Message != nil {
-	    if update.Message.Voice != nil {
-	      log.Printf("Message is voice, duration %d", update.Message.Voice.Duration)
+			if update.Message.Voice != nil {
+				log.Printf("Message is voice, duration %d", update.Message.Voice.Duration)
 
 				replyMessage(update.Message.Chat.ID, update.Message.MessageID, bot)
 				var user *tgbotapi.User
 				user = update.Message.From
 				go newMessageFromBastard(user.UserName, update.Message.Chat.ID)
-	    }
+			}
 
 			niceParse, _ := regexp.Compile("/top")
 			if niceParse.MatchString(update.Message.Text) {
@@ -60,22 +62,32 @@ func main() {
 }
 
 func replyMessage(chatId int64, messageId int, bot *tgbotapi.BotAPI) {
-  replyMessage := tgbotapi.NewMessage(chatId, GetBadWord())
+	replyMessage := tgbotapi.NewMessage(chatId, GetBadWord())
 	replyMessage.ParseMode = "HTML"
 	replyMessage.ReplyToMessageID = messageId
+	fmt.Println("reply to", messageId)
 
-	bot.Send(replyMessage)
+	replyedMessage, _ := bot.Send(replyMessage)
+
+	removeReplyTimer := time.NewTimer(15 * time.Second)
+	go func() {
+		<-removeReplyTimer.C
+		fmt.Println("Message", messageId, "deleted")
+		removeReplyTimer.Stop()
+		deleteConfig := tgbotapi.NewDeleteMessage(replyedMessage.Chat.ID, replyedMessage.MessageID)
+		bot.DeleteMessage(deleteConfig)
+	}()
 }
 
 func replyTop3(chatId int64, messageId int, bot *tgbotapi.BotAPI) {
 	log.Println("Get top 3")
-  answer := "Топ дибилов:\n"
+	answer := "Топ дибилов:\n"
 
 	for _, bastardRate := range getTop3(chatId) {
 		answer = answer + bastardRate.name + " : " + strconv.Itoa(bastardRate.count) + "\n"
 	}
 
-  replyMessage := tgbotapi.NewMessage(chatId, answer)
+	replyMessage := tgbotapi.NewMessage(chatId, answer)
 	replyMessage.ParseMode = "HTML"
 	replyMessage.ReplyToMessageID = messageId
 

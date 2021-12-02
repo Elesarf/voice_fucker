@@ -7,8 +7,8 @@ import (
 
 // ConfigData contains config data. Api keys, paths
 type ConfigData struct {
-	botAPIKey     string
-	dbPath        string
+	botAPIKey string
+	dbPath    string
 }
 
 func loadConfigFromEnv() ConfigData {
