@@ -69,7 +69,7 @@ func replyMessage(chatId int64, messageId int, bot *tgbotapi.BotAPI) {
 
 	replyedMessage, _ := bot.Send(replyMessage)
 
-	removeReplyTimer := time.NewTimer(15 * time.Second)
+	removeReplyTimer := time.NewTimer(time.Duration(SystemConfig.removeTimeout) * time.Second)
 	go func() {
 		<-removeReplyTimer.C
 		fmt.Println("Message", messageId, "deleted")
